@@ -3,6 +3,25 @@ on:
   push:
   workflow_dispatch:
 
+name: Sync Gist to Pages
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
 jobs:
   sync:
     runs-on: ubuntu-latest
