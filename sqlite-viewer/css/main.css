@@ -1,0 +1,107 @@
+@media (prefers-color-scheme: light) {
+    body {
+        background: #f5f5f5;
+    }
+
+    .drag {
+        background-color: lightblue;
+    }
+
+    #header {
+        background: #A0CFFF;
+        color: #3474A8;
+    }
+
+    .table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+        background-color: #F5F5E7;
+    }
+
+    /* Prism Light Mode Token Colors */
+    .token.keyword { color: #0033cc; font-weight: bold; }
+    .token.string { color: #036a3e; }
+    .token.number { color: #a626a4; }
+    .token.punctuation { color: #383a42; }
+    .token.operator { color: #0184a6; }
+    .token.comment { color: #a0a1a7; }
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #000;
+    }
+
+    .drag {
+        background-color: #1e3a5f;
+    }
+
+    #header {
+        background: #0d3b66;
+        color: #7ab5e6;
+    }
+
+    .table-hover tbody tr:hover td, .table-hover tbody tr:hover th {
+        background-color: #2c2c1e;
+    }
+
+    /* Prism Dark Mode Token Colors */
+    .token.keyword { color: #c5a3ff !important; font-weight: bold; }
+    .token.string { color: #a8df8e !important; }
+    .token.number { color: #7ec8e3 !important; }
+    .token.punctuation { color: #ccc; }
+    .token.operator { color: #ff7b72; }
+    .token.comment { color: #8b949e; }
+
+    .select2-container--bootstrap-5 .select2-selection {
+        background-color: #212529 !important;
+        border-color: #495057 !important;
+        color: #fff !important;
+    }
+
+    .select2-container--bootstrap-5 .select2-dropdown {
+        background-color: #212529 !important;
+        border-color: #495057 !important;
+    }
+
+    .select2-container--bootstrap-5 .select2-results__option--highlighted[aria-selected] {
+        background-color: #0d6efd !important;
+    }
+
+    .select2-container--bootstrap-5 .select2-search__field {
+        background-color: #212529 !important;
+        color: #fff !important;
+    }
+}
+
+#dropzone {
+    height: 450px;
+    cursor: pointer;
+    transition: height 0.5s ease;
+}
+
+#output-box {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#sql-editor {
+    height: 120px;
+    font-family: var(--bs-font-monospace), monospace;
+    font-size: 16px;
+    overflow-y: auto;
+}
+
+#data {
+    margin-bottom: 0;
+}
+
+#data th span {
+    cursor: help;
+}
+
+#data th, #data td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
