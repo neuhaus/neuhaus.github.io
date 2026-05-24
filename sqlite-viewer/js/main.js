@@ -3,7 +3,7 @@
 const SQL_WASM_PATH = "js/sql-wasm.wasm";
 
 const SQL_FROM_REGEX = /FROM\s+((?=['"])((["'])(?<g1>[^'"]+))|(?<g2>\w+))/mi;
-const SQL_LIMIT_REGEX = /LIMIT\s+(\d+)(?:\s*,\s*(\d+))?/mi;
+const SQL_LIMIT_REGEX = /\bLIMIT\s+(\d+)(?:\s*,\s*(\d+)|\s+OFFSET\s+(\d+))?(\s*;?\s*)$/i;
 const SQL_SELECT_REGEX = /SELECT\s+[^;]+\s+FROM\s+/mi;
 
 function quoteIdentifier(name) {
@@ -47,6 +47,7 @@ function sendWorkerMessage(action, payload = {}, transferables = []) {
 
 let lastCachedQueryCount = { select: "", count: 0 };
 let loadedTableNames = [];
+let currentDbKey = "default";
 let editor = null;
 const errorBox = $("#error");
 const infoBox = $("#info");
@@ -55,6 +56,18 @@ const hashParams = new URLSearchParams(window.location.hash.substring(1));
 function updateHashSql(query) {
     hashParams.set("sql", query);
     history.replaceState(null, null, `#${hashParams.toString()}`);
+}
+
+function updateHashUrl(urlStr) {
+    hashParams.set("url", urlStr);
+    history.replaceState(null, null, `#${hashParams.toString()}`);
+}
+
+function clearHashUrl() {
+    if (hashParams.has("url")) {
+        hashParams.delete("url");
+        history.replaceState(null, null, `#${hashParams.toString()}`);
+    }
 }
 
 const selectFormatter = function (item) {
@@ -107,31 +120,32 @@ function initialize() {
 
     const loadUrlDB = hashParams.get("url");
     if (loadUrlDB != null) {
-        try {
-            const resolvedUrl = new URL(decodeURIComponent(loadUrlDB), window.location.href);
-            setIsLoading(true);
-            fetch(resolvedUrl.href)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.arrayBuffer();
-                })
-                .then(async (buffer) => {
-                    const pathname = resolvedUrl.pathname.toLowerCase();
-                    if (pathname.endsWith(".zip")) {
-                        await handleZipFile(buffer);
-                    } else {
-                        await loadDB(buffer);
-                    }
-                })
-                .catch((err) => {
-                    setIsLoading(false);
-                    window.alert("Error loading remote database: " + err.message);
-                });
-        } catch (e) {
-            window.alert(e.message);
+        loadRemoteDB(loadUrlDB);
+    } else if (window.APP_CONFIG && window.APP_CONFIG.defaultUrl) {
+        loadRemoteDB(window.APP_CONFIG.defaultUrl);
+    }
+}
+
+async function loadRemoteDB(urlStr) {
+    try {
+        const resolvedUrl = new URL(decodeURIComponent(urlStr), window.location.href);
+        currentDbKey = "url:" + encodeURIComponent(resolvedUrl.href);
+        setIsLoading(true);
+        const response = await fetch(resolvedUrl.href);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        const buffer = await response.arrayBuffer();
+        const pathname = resolvedUrl.pathname.toLowerCase();
+        if (pathname.endsWith(".zip")) {
+            await handleZipFile(buffer);
+        } else {
+            await loadDB(buffer);
+        }
+        updateHashUrl(urlStr);
+    } catch (err) {
+        setIsLoading(false);
+        window.alert("Error loading remote database: " + err.message);
     }
 }
 
@@ -144,41 +158,19 @@ async function loadDB(arrayBuffer) {
         // Send ArrayBuffer to Worker using transferable array for 0-copy transfer
         await sendWorkerMessage("open", { buffer: arrayBuffer }, [arrayBuffer]);
         dbLoaded = true;
+        renderQueryHistory();
 
-        // Get all table names from master table using exec action
-        const masterResults = await sendWorkerMessage("exec", {
-            sql: "SELECT name, type FROM sqlite_master WHERE type='table' OR type='view' ORDER BY name"
-        });
-
-        const tableList = $("#tables");
-        let firstTableName = null;
-
-        if (masterResults.results && masterResults.results.length > 0) {
-            const rows = masterResults.results[0].values;
-            for (let i = 0; i < rows.length; i++) {
-                const name = rows[i][0];
-                const type = rows[i][1];
-
-                if (firstTableName === null) {
-                    firstTableName = name;
-                }
-
-                // getTableRowsCount is now asynchronous
-                const rowCount = await getTableRowsCount(name);
-                loadedTableNames.push(name);
-                const tableType = type !== "table" ? `, ${type}` : "";
-                const option = $("<option>").val(name).text(`${name} (${rowCount} rows${tableType})`);
-                tableList.append(option);
-            }
-        }
-
-        //Select first table and show It
-        tableList.val(firstTableName);
+        const firstTableName = await populateTableList(true);
         const sqlParam = hashParams.get("sql");
+        const defaultSql = (window.APP_CONFIG && window.APP_CONFIG.defaultSql) ? window.APP_CONFIG.defaultSql : null;
+
         if (sqlParam != null) {
             editor.updateCode(sqlParam);
             await renderQuery(sqlParam);
-        } else {
+        } else if (defaultSql != null) {
+            editor.updateCode(defaultSql);
+            await renderQuery(defaultSql);
+        } else if (firstTableName !== null) {
             await doDefaultSelect(firstTableName);
         }
 
@@ -195,6 +187,56 @@ async function loadDB(arrayBuffer) {
         window.alert(ex.message || ex);
     } finally {
         setIsLoading(false);
+    }
+}
+
+async function populateTableList(selectFirst = false) {
+    const tableList = $("#tables");
+    const currentSelected = tableList.val();
+
+    // Reset table name cache
+    loadedTableNames = [];
+    tableList.empty();
+    tableList.append("<option></option>");
+
+    try {
+        const masterResults = await sendWorkerMessage("exec", {
+            sql: "SELECT name, type FROM sqlite_master WHERE type='table' OR type='view' ORDER BY name"
+        });
+
+        let firstTableName = null;
+
+        if (masterResults.results && masterResults.results.length > 0) {
+            const rows = masterResults.results[0].values;
+            for (let i = 0; i < rows.length; i++) {
+                const name = rows[i][0];
+                const type = rows[i][1];
+
+                if (firstTableName === null) {
+                    firstTableName = name;
+                }
+
+                const rowCount = await getTableRowsCount(name);
+                loadedTableNames.push(name);
+                const tableType = type !== "table" ? `, ${type}` : "";
+                const option = $("<option>").val(name).text(`${name} (${rowCount} rows${tableType})`);
+                tableList.append(option);
+            }
+        }
+
+        if (selectFirst && firstTableName !== null) {
+            tableList.val(firstTableName).trigger("change.select2");
+            return firstTableName;
+        } else if (currentSelected && loadedTableNames.includes(currentSelected)) {
+            tableList.val(currentSelected).trigger("change.select2");
+            return currentSelected;
+        } else {
+            tableList.val(null).trigger("change.select2");
+            return null;
+        }
+    } catch (e) {
+        console.error("Error populating table list:", e);
+        return null;
     }
 }
 
@@ -218,12 +260,15 @@ async function getQueryRowCount(query) {
         return lastCachedQueryCount.count;
     }
 
-    let queryReplaced = query.replace(SQL_SELECT_REGEX, "SELECT COUNT(*) AS count FROM ");
+    if (/^\s*SELECT\b/i.test(query)) {
+        // Strip the outermost trailing LIMIT clause if it exists
+        let cleanQuery = query.replace(SQL_LIMIT_REGEX, "$4");
+        // Strip any trailing semicolons which are invalid inside subqueries
+        cleanQuery = cleanQuery.trim().replace(/;+$/, "");
 
-    if (queryReplaced !== query) {
-        queryReplaced = queryReplaced.replace(SQL_LIMIT_REGEX, "");
+        const countQuery = `SELECT COUNT(*) AS count FROM (${cleanQuery})`;
         try {
-            const results = await sendWorkerMessage("exec", { sql: queryReplaced });
+            const results = await sendWorkerMessage("exec", { sql: countQuery });
             if (results.results && results.results.length > 0) {
                 const count = results.results[0].values[0][0];
                 lastCachedQueryCount.select = query;
@@ -232,7 +277,7 @@ async function getQueryRowCount(query) {
             }
             return -1;
         } catch (e) {
-            console.error(e);
+            console.error("Error executing count query:", e);
             return -1;
         }
     } else {
@@ -354,9 +399,11 @@ function setupDragAndDrop() {
 }
 
 function handleFile(file) {
+    clearHashUrl();
     if (file.name.endsWith(".zip")) {
         handleZipFile(file);
     } else {
+        currentDbKey = `file:${file.name}-${file.size}-${file.lastModified}`;
         setIsLoading(true);
         const reader = new FileReader();
         reader.onload = function (e) {
@@ -392,6 +439,9 @@ async function handleZipFile(file) {
         }
 
         const arrayBuffer = await dbFile.async("arraybuffer");
+        if (file && typeof file.name === "string") {
+            currentDbKey = `zip:${file.name}:${dbFile.name}-${arrayBuffer.byteLength}`;
+        }
         await loadDB(arrayBuffer);
 
     } catch (err) {
@@ -408,8 +458,18 @@ async function doDefaultSelect(name) {
 
 async function executeSql() {
     const query = editor.toString();
+    saveQueryToHistory(query);
     await renderQuery(query);
-    $("#tables").val(getTableNameFromQuery(query));
+
+    // If query creates, drops, alters, or modifies data, refresh the dropdown to keep counts/names in sync
+    const SCHEMA_MODIFY_REGEX = /\b(create|drop|alter|insert|delete|update|replace)\b/i;
+    if (SCHEMA_MODIFY_REGEX.test(query)) {
+        lastCachedQueryCount = { select: "", count: 0 };
+        await populateTableList();
+    } else {
+        $("#tables").val(getTableNameFromQuery(query)).trigger("change.select2");
+    }
+
     updateHashSql(query);
 }
 
@@ -427,10 +487,16 @@ async function parseLimitFromQuery(query) {
     if (sqlRegex != null) {
         let result = { max: 0, offset: 0 };
 
-        if (sqlRegex.length > 2 && typeof sqlRegex[2] !== "undefined") {
+        if (sqlRegex[3] !== undefined) {
+            // LIMIT <max> OFFSET <offset>
+            result.max = parseInt(sqlRegex[1]);
+            result.offset = parseInt(sqlRegex[3]);
+        } else if (sqlRegex[2] !== undefined) {
+            // LIMIT <offset>, <max>
             result.offset = parseInt(sqlRegex[1]);
             result.max = parseInt(sqlRegex[2]);
         } else {
+            // LIMIT <max>
             result.offset = 0;
             result.max = parseInt(sqlRegex[1]);
         }
@@ -473,7 +539,7 @@ async function setPage(el, next) {
     }
 
     const offset = (pageToSet * limit.max);
-    editor.updateCode(query.replace(SQL_LIMIT_REGEX, `LIMIT ${offset},${limit.max}`));
+    editor.updateCode(query.replace(SQL_LIMIT_REGEX, `LIMIT ${offset},${limit.max}$4`));
 
     await executeSql();
 }
@@ -704,4 +770,153 @@ async function exportQueryTableToCsv() {
     }
 
     setIsLoading(false);
+}
+
+// --- Partitioned Query History API ---
+const HISTORY_PREFIX = "sqlite_viewer_history_";
+const MAX_HISTORY_ITEMS = 50;
+
+function getActiveStorageKey() {
+    return HISTORY_PREFIX + currentDbKey;
+}
+
+function getQueryHistory() {
+    try {
+        const key = getActiveStorageKey();
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.error("Failed to read history from localStorage:", e);
+        return [];
+    }
+}
+
+function saveQueryToHistory(sql) {
+    if (!sql || sql.trim() === "" || currentDbKey === "default") return;
+    
+    // Skip auto-generated pagination count queries
+    if (/^\s*SELECT\s+COUNT\(\*\)\s+(AS\s+\w+\s+)?FROM/i.test(sql)) return;
+
+    let historyList = getQueryHistory();
+    
+    // Move duplicate queries to the top
+    historyList = historyList.filter(item => item.sql.trim() !== sql.trim());
+    
+    historyList.unshift({
+        sql: sql.trim(),
+        timestamp: Date.now()
+    });
+
+    if (historyList.length > MAX_HISTORY_ITEMS) {
+        historyList = historyList.slice(0, MAX_HISTORY_ITEMS);
+    }
+
+    localStorage.setItem(getActiveStorageKey(), JSON.stringify(historyList));
+    renderQueryHistory();
+}
+
+function clearQueryHistory() {
+    if (confirm("Are you sure you want to clear history for this database?")) {
+        localStorage.removeItem(getActiveStorageKey());
+        renderQueryHistory();
+    }
+}
+
+function clearAllDatabasesHistory() {
+    if (confirm("This will permanently delete query histories for ALL databases. Proceed?")) {
+        Object.keys(localStorage)
+            .filter(key => key.startsWith(HISTORY_PREFIX))
+            .forEach(key => localStorage.removeItem(key));
+        renderQueryHistory();
+    }
+}
+
+function deleteHistoryItem(index) {
+    let historyList = getQueryHistory();
+    historyList.splice(index, 1);
+    localStorage.setItem(getActiveStorageKey(), JSON.stringify(historyList));
+    renderQueryHistory();
+}
+
+function copyQueryToClipboard(sql) {
+    const ta = document.createElement("textarea");
+    ta.value = sql;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.opacity = "0";
+    // Append inside the offcanvas to stay within Bootstrap's focus trap
+    const container = document.getElementById("history-sidebar") || document.body;
+    container.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand("copy"); } catch (_) {}
+    container.removeChild(ta);
+}
+
+function loadQueryFromHistory(sql) {
+    editor.updateCode(sql);
+    executeSql();
+    
+    // Close offcanvas sidebar
+    const offcanvasEl = document.getElementById("history-sidebar");
+    if (offcanvasEl && typeof bootstrap !== "undefined" && bootstrap.Offcanvas) {
+        const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+        if (offcanvas) offcanvas.hide();
+    }
+}
+
+function renderQueryHistory() {
+    const historyListContainer = $("#history-list");
+    if (historyListContainer.length === 0) return;
+    
+    const historyList = getQueryHistory();
+    
+    $("#history-count").text(`${historyList.length} queries saved`);
+    historyListContainer.empty();
+
+    // Set a friendly name in the offcanvas header
+    let friendlyName = "Default";
+    if (currentDbKey !== "default") {
+        if (currentDbKey.startsWith("url:")) {
+            friendlyName = decodeURIComponent(currentDbKey.substring(4)).split("/").pop();
+        } else if (currentDbKey.startsWith("file:")) {
+            friendlyName = currentDbKey.substring(5).split("-")[0];
+        } else if (currentDbKey.startsWith("zip:")) {
+            const parts = currentDbKey.substring(4).split(":");
+            friendlyName = parts.length > 1 ? parts[1].split("-")[0] : parts[0];
+        }
+    }
+    $("#history-sidebar-label").text(`History: ${friendlyName}`);
+
+    if (historyList.length === 0) {
+        historyListContainer.append('<div class="text-center text-secondary py-5">No queries in history yet.</div>');
+        return;
+    }
+
+    historyList.forEach((item, index) => {
+        const dateStr = new Date(item.timestamp).toLocaleString();
+        
+        // Escape SQL for safe HTML rendering
+        const escapedSql = item.sql
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+
+        const card = $(`
+            <div class="card shadow-sm border-0 border-start border-3 border-primary query-card">
+                <div class="card-body p-2 d-flex flex-column gap-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-secondary font-monospace" style="font-size: 0.75rem">${dateStr}</small>
+                        <button class="btn btn-link p-0 text-danger text-decoration-none" style="font-size: 0.85rem" onclick="deleteHistoryItem(${index})">Delete</button>
+                    </div>
+                    <pre class="p-2 mb-1 overflow-x-auto" onclick="loadQueryFromHistory(decodeURIComponent('${encodeURIComponent(item.sql)}'))">${escapedSql}</pre>
+                    <div class="d-flex gap-2 mt-1">
+                        <button class="btn btn-sm btn-light py-0 px-2" onclick="loadQueryFromHistory(decodeURIComponent('${encodeURIComponent(item.sql)}'))">Run</button>
+                        <button class="btn btn-sm btn-light py-0 px-2" onclick="copyQueryToClipboard(decodeURIComponent('${encodeURIComponent(item.sql)}'))">Copy</button>
+                    </div>
+                </div>
+            </div>
+        `);
+        historyListContainer.append(card);
+    });
 }

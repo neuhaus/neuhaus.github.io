@@ -1,8 +1,0 @@
-.idea/
-.DS_Store
-*.swp
-*.swo
-*~
-node_modules/
-*.map
-/sqlite-wasm-3530100/
