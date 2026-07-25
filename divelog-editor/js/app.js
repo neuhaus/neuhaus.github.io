@@ -111,11 +111,23 @@
       };
     }
 
+    function highlightXml(xml) {
+      const escaped = xml
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      return escaped.replace(/(&lt;\/?)([a-zA-Z0-9_:\-]+)((?:\s+[a-zA-Z0-9_:\-]+=(?:"[^"]*"|'[^']*'))*?\s*\/?&gt;)/g, (match, p1, tagName, rest) => {
+        const highlightedRest = rest.replace(/\b([a-zA-Z0-9_:\-]+)(=)/g, '<span class="xml-attr">$1</span>$2');
+        return `<span class="xml-bracket">${p1}</span><span class="xml-element">${tagName}</span>${highlightedRest}`;
+      });
+    }
+
     function updateXmlPreview() {
       try {
         const data = getFormData();
         const xml = exportToUddf(data, currentUnit);
-        xmlOutput.textContent = xml;
+        xmlOutput.innerHTML = highlightXml(xml);
       } catch (err) {
         xmlOutput.textContent = 'Error generating UDDF XML: ' + err.message;
       }
