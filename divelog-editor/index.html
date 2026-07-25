@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>divelog-editor</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Skip Navigation Link for Keyboard & Screen Reader Users -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="container">
+    <header role="banner">
+      <div class="brand-title">
+        <img src="divelog-editor.svg" alt="" width="96" height="96" class="app-logo">
+        <h1>divelog<br>editor</h1>
+      </div>
+      <div class="header-controls">
+        <div class="unit-selector">
+          <label for="unitToggle">Units:</label>
+          <select id="unitToggle" aria-label="Measurement units system">
+            <option value="metric">Metric (°C, m, bar, kg)</option>
+            <option value="imperial">Imperial (°F, ft, psi, lbs)</option>
+          </select>
+        </div>
+        <button id="btnNewDive" class="btn" type="button">New Dive</button>
+        <button id="btnLoadSample" class="btn" type="button">Load Sample Dive</button>
+        <div class="file-input-wrapper">
+          <button class="btn" type="button" onclick="document.getElementById('fileImport').click()">Import UDDF File</button>
+          <input type="file" id="fileImport" accept=".xml,.uddf" aria-label="Choose UDDF XML file to import">
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" role="main" class="app-layout">
+      <!-- Left Column: Dive Log Form -->
+      <section class="card" aria-labelledby="dive-details-heading">
+        <h2 id="dive-details-heading" class="card-title">Dive Details</h2>
+
+        <form id="diveForm" aria-label="Dive log entry form">
+          <!-- Primary Form Fields (Upfront) -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="diveNumber">Dive Number</label>
+              <input type="number" id="diveNumber" value="1" min="1" required aria-required="true">
+            </div>
+
+            <div class="form-group">
+              <label for="dateTime">Date & Time</label>
+              <input type="datetime-local" id="dateTime" required aria-required="true">
+            </div>
+
+            <div class="form-group form-grid-full">
+              <label for="siteName">Dive Site Name</label>
+              <input type="text" id="siteName" placeholder="e.g. Shark Reef, Dahab Blue Hole" required aria-required="true">
+            </div>
+
+            <div class="form-group">
+              <label for="maxDepth">Max Depth <span class="unit-tag unit-depth" aria-hidden="true">(m)</span></label>
+              <input type="number" id="maxDepth" step="0.1" value="18.0" min="0" required aria-required="true">
+            </div>
+
+            <div class="form-group">
+              <label for="duration">Duration (min)</label>
+              <input type="number" id="duration" value="45" min="1" required aria-required="true">
+            </div>
+
+            <div class="form-group form-grid-full">
+              <label for="gasPreset">Gas Mixture</label>
+              <select id="gasPreset" aria-label="Select breathing gas mixture preset">
+                <option value="air">Air (21% O2)</option>
+                <option value="ean32">EAN32 (Nitrox 32%)</option>
+                <option value="ean36">EAN36 (Nitrox 36%)</option>
+                <option value="trimix2135">Trimix 21/35</option>
+                <option value="custom">Custom Gas Mix</option>
+              </select>
+            </div>
+
+            <div id="customGasContainer" class="form-grid form-grid-full" style="display: none;">
+              <div class="form-group">
+                <label for="gasName">Gas Name</label>
+                <input type="text" id="gasName" value="Air">
+              </div>
+              <div class="form-group">
+                <label for="gasO2">O2 %</label>
+                <input type="number" id="gasO2" value="21" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label for="gasHe">He %</label>
+                <input type="number" id="gasHe" value="0" min="0" max="100">
+              </div>
+              <div class="form-grid-full">
+                <span id="gasValidationWarning" style="color: #dc3545; font-size: 0.85rem; font-weight: 600; display: none;" role="alert">Warning: O₂ + He percentage exceeds 100%!</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="startPressure">Start Pressure <span class="unit-tag unit-pressure" aria-hidden="true">(bar)</span></label>
+              <input type="number" id="startPressure" value="200" min="0" required aria-required="true">
+            </div>
+
+            <div class="form-group">
+              <label for="endPressure">End Pressure <span class="unit-tag unit-pressure" aria-hidden="true">(bar)</span></label>
+              <input type="number" id="endPressure" value="50" min="0" required aria-required="true">
+            </div>
+          </div>
+
+          <!-- Progressive Disclosure: Additional Details -->
+          <details>
+            <summary>Add Diver & Buddy Details</summary>
+            <div class="details-content form-grid">
+              <div class="form-group">
+                <label for="diverFirstName">Diver First Name</label>
+                <input type="text" id="diverFirstName" placeholder="e.g. Jane">
+              </div>
+              <div class="form-group">
+                <label for="diverLastName">Diver Last Name</label>
+                <input type="text" id="diverLastName" placeholder="e.g. Doe">
+              </div>
+              <div class="form-group form-grid-full">
+                <label for="buddyName">Buddy Name</label>
+                <input type="text" id="buddyName" placeholder="e.g. John Diver">
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Add Location & Coordinates</summary>
+            <div class="details-content form-grid">
+              <div class="form-group">
+                <label for="siteLocation">Location / Area</label>
+                <input type="text" id="siteLocation" placeholder="e.g. Red Sea, Sinai">
+              </div>
+              <div class="form-group">
+                <label for="siteCountry">Country</label>
+                <input type="text" id="siteCountry" placeholder="e.g. Egypt">
+              </div>
+              <div class="form-group">
+                <label for="latitude">Latitude</label>
+                <input type="number" id="latitude" step="0.000001" placeholder="e.g. 28.572200">
+              </div>
+              <div class="form-group">
+                <label for="longitude">Longitude</label>
+                <input type="number" id="longitude" step="0.000001" placeholder="e.g. 34.538300">
+              </div>
+            </div>
+          </details>
+
+          <details>
+            <summary>Add Equipment & Environmental Conditions</summary>
+            <div class="details-content form-grid">
+              <div class="form-group">
+                <label for="tankVolume">Tank Volume <span class="unit-tag unit-volume" aria-hidden="true">(L)</span></label>
+                <input type="number" id="tankVolume" value="12" step="0.1">
+              </div>
+              <div class="form-group">
+                <label for="apparatus">Apparatus</label>
+                <select id="apparatus" aria-label="Select diving apparatus type">
+                  <option value="open-scuba">Open Circuit Scuba</option>
+                  <option value="rebreather">Rebreather (CCR/SCR)</option>
+                  <option value="surface-supplied">Surface Supplied</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="suitType">Suit / Exposure Protection</label>
+                <select id="suitType" aria-label="Select suit or exposure protection type">
+                  <option value="none">None / Swimsuit</option>
+                  <option value="shorty">Shorty Wetsuit</option>
+                  <option value="wetsuit_3mm">3mm Wetsuit</option>
+                  <option value="wetsuit_5mm" selected>5mm Wetsuit</option>
+                  <option value="wetsuit_7mm">7mm Wetsuit / Semi-Dry</option>
+                  <option value="drysuit">Drysuit</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="leadQuantity">Ballast Weight <span class="unit-tag unit-weight" aria-hidden="true">(kg)</span></label>
+                <input type="number" id="leadQuantity" value="6.0" step="0.5" min="0">
+              </div>
+              <div class="form-group">
+                <label for="purpose">Purpose</label>
+                <select id="purpose" aria-label="Select dive purpose">
+                  <option value="sightseeing">Sightseeing / Recreational</option>
+                  <option value="learning">Student / Learning</option>
+                  <option value="teaching">Instruction / Teaching</option>
+                  <option value="photography-videography">Photography / Video</option>
+                  <option value="research">Scientific / Research</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="airTemp">Air Temperature <span class="unit-tag unit-temp" aria-hidden="true">(°C)</span></label>
+                <input type="number" id="airTemp" step="0.5" placeholder="e.g. 28">
+              </div>
+              <div class="form-group">
+                <label for="waterTemp">Water Temperature <span class="unit-tag unit-temp" aria-hidden="true">(°C)</span></label>
+                <input type="number" id="waterTemp" step="0.5" placeholder="e.g. 24">
+              </div>
+              <div class="form-group">
+                <label for="visibility">Visibility <span class="unit-tag unit-depth" aria-hidden="true">(m)</span></label>
+                <input type="number" id="visibility" step="0.5" placeholder="e.g. 20">
+              </div>
+              <div class="form-group form-grid-full">
+                <label for="notes">Dive Notes</label>
+                <textarea id="notes" rows="3" placeholder="Enter log notes, marine life spotted, equipment notes..."></textarea>
+              </div>
+            </div>
+          </details>
+        </form>
+      </section>
+
+      <!-- Right Column: UDDF XML Preview & Export -->
+      <section class="card xml-preview-container" aria-labelledby="xml-output-heading">
+        <div class="xml-header">
+          <h2 id="xml-output-heading" class="card-title" style="margin: 0; border: none;">UDDF 3.2 XML Output</h2>
+          <div>
+            <button id="btnCopyXml" class="btn" type="button">Copy XML</button>
+            <button id="btnExportXml" class="btn btn-success" type="button">Download .uddf File</button>
+            <span id="statusMsg" class="status-msg" role="status" aria-live="polite" aria-atomic="true">Copied!</span>
+          </div>
+        </div>
+        <pre tabindex="0" role="region" aria-label="Generated UDDF 3.2 XML code"><code id="xmlOutput"></code></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/uddf-schema.js"></script>
+  <script src="js/uddf-exporter.js"></script>
+  <script src="js/uddf-parser.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
