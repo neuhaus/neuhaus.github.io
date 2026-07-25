@@ -1,20 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>divelog-editor</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
   <!-- Skip Navigation Link for Keyboard & Screen Reader Users -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <div class="container">
+    <noscript>
+      <div class="noscript-warning" role="alert">
+        <strong>JavaScript Required:</strong> divelog-editor requires JavaScript to convert units, parse UDDF dive logs,
+        and generate XML output. Please enable JavaScript in your browser settings to use this application.
+      </div>
+    </noscript>
+
     <header role="banner">
       <div class="brand-title">
-        <img src="divelog-editor.svg" alt="" width="96" height="96" class="app-logo">
-        <h1>divelog<br>editor</h1>
+        <a href="https://github.com/neuhaus/divelog-editor" class="brand-link" aria-label="divelog-editor on GitHub">
+          <img src="divelog-editor.svg" alt="" width="96" height="96" class="app-logo">
+          <h1>divelog<br>editor</h1>
+        </a>
       </div>
       <div class="header-controls">
         <div class="unit-selector">
@@ -27,7 +38,8 @@
         <button id="btnNewDive" class="btn" type="button">New Dive</button>
         <button id="btnLoadSample" class="btn" type="button">Load Sample Dive</button>
         <div class="file-input-wrapper">
-          <button class="btn" type="button" onclick="document.getElementById('fileImport').click()">Import UDDF File</button>
+          <button class="btn" type="button" onclick="document.getElementById('fileImport').click()">Import UDDF
+            File</button>
           <input type="file" id="fileImport" accept=".xml,.uddf" aria-label="Choose UDDF XML file to import">
         </div>
       </div>
@@ -53,7 +65,8 @@
 
             <div class="form-group form-grid-full">
               <label for="siteName">Dive Site Name</label>
-              <input type="text" id="siteName" placeholder="e.g. Shark Reef, Dahab Blue Hole" required aria-required="true">
+              <input type="text" id="siteName" placeholder="e.g. Shark Reef, Dahab Blue Hole" required
+                aria-required="true">
             </div>
 
             <div class="form-group">
@@ -91,17 +104,21 @@
                 <input type="number" id="gasHe" value="0" min="0" max="100">
               </div>
               <div class="form-grid-full">
-                <span id="gasValidationWarning" style="color: #dc3545; font-size: 0.85rem; font-weight: 600; display: none;" role="alert">Warning: O₂ + He percentage exceeds 100%!</span>
+                <span id="gasValidationWarning"
+                  style="color: #dc3545; font-size: 0.85rem; font-weight: 600; display: none;" role="alert">Warning: O₂
+                  + He percentage exceeds 100%!</span>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="startPressure">Start Pressure <span class="unit-tag unit-pressure" aria-hidden="true">(bar)</span></label>
+              <label for="startPressure">Start Pressure <span class="unit-tag unit-pressure"
+                  aria-hidden="true">(bar)</span></label>
               <input type="number" id="startPressure" value="200" min="0" required aria-required="true">
             </div>
 
             <div class="form-group">
-              <label for="endPressure">End Pressure <span class="unit-tag unit-pressure" aria-hidden="true">(bar)</span></label>
+              <label for="endPressure">End Pressure <span class="unit-tag unit-pressure"
+                  aria-hidden="true">(bar)</span></label>
               <input type="number" id="endPressure" value="50" min="0" required aria-required="true">
             </div>
           </div>
@@ -151,7 +168,8 @@
             <summary>Add Equipment & Environmental Conditions</summary>
             <div class="details-content form-grid">
               <div class="form-group">
-                <label for="tankVolume">Tank Volume <span class="unit-tag unit-volume" aria-hidden="true">(L)</span></label>
+                <label for="tankVolume">Tank Volume <span class="unit-tag unit-volume"
+                    aria-hidden="true">(L)</span></label>
                 <input type="number" id="tankVolume" value="12" step="0.1">
               </div>
               <div class="form-group">
@@ -174,7 +192,8 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="leadQuantity">Ballast Weight <span class="unit-tag unit-weight" aria-hidden="true">(kg)</span></label>
+                <label for="leadQuantity">Ballast Weight <span class="unit-tag unit-weight"
+                    aria-hidden="true">(kg)</span></label>
                 <input type="number" id="leadQuantity" value="6.0" step="0.5" min="0">
               </div>
               <div class="form-group">
@@ -189,20 +208,24 @@
                 </select>
               </div>
               <div class="form-group">
-                <label for="airTemp">Air Temperature <span class="unit-tag unit-temp" aria-hidden="true">(°C)</span></label>
+                <label for="airTemp">Air Temperature <span class="unit-tag unit-temp"
+                    aria-hidden="true">(°C)</span></label>
                 <input type="number" id="airTemp" step="0.5" placeholder="e.g. 28">
               </div>
               <div class="form-group">
-                <label for="waterTemp">Water Temperature <span class="unit-tag unit-temp" aria-hidden="true">(°C)</span></label>
+                <label for="waterTemp">Water Temperature <span class="unit-tag unit-temp"
+                    aria-hidden="true">(°C)</span></label>
                 <input type="number" id="waterTemp" step="0.5" placeholder="e.g. 24">
               </div>
               <div class="form-group">
-                <label for="visibility">Visibility <span class="unit-tag unit-depth" aria-hidden="true">(m)</span></label>
+                <label for="visibility">Visibility <span class="unit-tag unit-depth"
+                    aria-hidden="true">(m)</span></label>
                 <input type="number" id="visibility" step="0.5" placeholder="e.g. 20">
               </div>
               <div class="form-group form-grid-full">
                 <label for="notes">Dive Notes</label>
-                <textarea id="notes" rows="3" placeholder="Enter log notes, marine life spotted, equipment notes..."></textarea>
+                <textarea id="notes" rows="3"
+                  placeholder="Enter log notes, marine life spotted, equipment notes..."></textarea>
               </div>
             </div>
           </details>
@@ -229,4 +252,5 @@
   <script src="js/uddf-parser.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

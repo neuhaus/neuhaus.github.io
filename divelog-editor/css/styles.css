@@ -64,7 +64,21 @@ header {
 .brand-title {
   display: flex;
   align-items: center;
+}
+
+.brand-link {
+  display: flex;
+  align-items: center;
   gap: 6px;
+  text-decoration: none;
+  color: var(--text-color);
+  border-radius: 6px;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.brand-link:hover h1 {
+  color: var(--primary-color);
 }
 
 .app-logo {
@@ -271,6 +285,7 @@ summary:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0; /* Prevents grid child overflow on iOS Safari */
 }
 
 label {
@@ -292,8 +307,22 @@ textarea {
   border-radius: 6px;
   font-family: inherit;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   color: var(--text-color);
   background-color: #ffffff;
+}
+
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Fix iOS Safari datetime-local intrinsic sizing & alignment */
+input[type="datetime-local"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.5em;
+  margin: 0;
 }
 
 textarea {
@@ -394,4 +423,17 @@ pre:focus-visible {
   color: var(--success-color);
   margin-left: 10px;
   display: none;
+}
+
+/* Graceful Notice for Non-JavaScript Browsers */
+.noscript-warning {
+  background-color: #fff3cd;
+  color: #725100;
+  border: 2px solid #ffeeba;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
 }
