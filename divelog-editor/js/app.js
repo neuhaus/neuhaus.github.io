@@ -53,11 +53,13 @@
     const fileImport = $('fileImport');
     const statusMsg = $('statusMsg');
 
-    // Initialise DateTime picker to current local time
-    function initialiseDateTime() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      $val('dateTime', now.toISOString().slice(0, 16));
+    // Initialise DateTime picker to current local time (only if empty or forced)
+    function initialiseDateTime(force = false) {
+      if (force || !$val('dateTime')) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        $val('dateTime', now.toISOString().slice(0, 16));
+      }
     }
     initialiseDateTime();
 
@@ -221,7 +223,7 @@
     function resetFormToNewDive() {
       activeWaypoints = null;
       $val('diveNumber', '1');
-      initialiseDateTime();
+      initialiseDateTime(true);
       $val('siteName', '');
       $val('siteLocation', '');
       $val('siteCountry', '');
@@ -300,9 +302,13 @@
       const xml = xmlOutput.textContent;
       const rawDate = $val('dateTime');
       const dateStr = rawDate ? rawDate.substring(0, 10) : new Date().toISOString().substring(0, 10);
-      const siteNameRaw = $val('siteName') || 'dive_log';
-      const siteNameClean = siteNameRaw.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase();
-      const filename = `${dateStr}_${siteNameClean || 'dive_log'}.uddf`;
+      const diveNumRaw = $val('diveNumber');
+      const diveNumClean = diveNumRaw ? diveNumRaw.replace(/[^a-z0-9]+/gi, '') : '';
+      const siteNameRaw = $val('siteName');
+      const siteNameClean = siteNameRaw ? siteNameRaw.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase() : '';
+
+      const parts = [dateStr, diveNumClean, siteNameClean].filter(Boolean);
+      const filename = `${parts.join('_') || 'dive_log'}.uddf`;
 
       const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);

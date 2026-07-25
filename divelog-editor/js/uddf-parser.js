@@ -42,14 +42,14 @@
     // Dive Site
     const siteName = getText('divesite site > name') || getText('site > name');
     const siteLocation = getText('geography > location');
-    const siteCountry = getText('geography > country');
+    const siteCountry = getText('geography address > country') || getText('geography > country') || getText('address > country');
     const latitude = getText('geography > latitude');
     const longitude = getText('geography > longitude');
 
     // Diver & Buddy
-    const diverFirstName = getText('diver owner personal > firstnames');
+    const diverFirstName = getText('diver owner personal > firstname') || getText('diver owner personal > firstnames');
     const diverLastName = getText('diver owner personal > lastname');
-    const buddyName = getText('diver buddy personal > firstnames') || getText('diver buddy personal > name');
+    const buddyName = getText('diver buddy personal > firstname') || getText('diver buddy personal > firstnames') || getText('diver buddy personal > name');
 
     // Gas definitions
     const gasName = getText('gasdefinitions mix > name') || 'Air';
@@ -100,12 +100,16 @@
     const notes = getText('informationafterdive notes > para') || getText('informationafterdive > notes');
 
     // Tank Data
-    const tankVolM3 = getFloat('tankdata > tankvolume');
+    const tankVolVal = getFloat('tankdata > tankvolume');
     let tankVolume = isImperial ? '80' : '12';
-    if (tankVolM3 !== null && tankVolM3 > 0) {
-      tankVolume = isImperial
-        ? CONVERSIONS.cubicMetersToCuft(tankVolM3).toFixed(0)
-        : CONVERSIONS.cubicMetersToLitres(tankVolM3).toFixed(1);
+    if (tankVolVal !== null && tankVolVal > 0) {
+      if (tankVolVal < 1.0) {
+        tankVolume = isImperial
+          ? CONVERSIONS.cubicMetersToCuft(tankVolVal).toFixed(0)
+          : CONVERSIONS.cubicMetersToLitres(tankVolVal).toFixed(1);
+      } else {
+        tankVolume = tankVolVal.toFixed(1);
+      }
     }
 
     const pStartPa = getFloat('tankdata > tankpressurebegin') ?? getFloat('waypoint:first-child > tankpressure');
@@ -140,7 +144,6 @@
 
     // Preserve raw profile waypoints from dive computer / imported file
     const waypointsNodes = Array.from(xmlDoc.querySelectorAll('samples > waypoint'));
-    let duration = '45';
     const customWaypoints = waypointsNodes.map(wp => ({
       time: getFloat('divetime', wp) ?? 0,
       depth: getFloat('depth', wp) ?? 0,
@@ -148,7 +151,11 @@
       pressure: getFloat('tankpressure', wp)
     }));
 
-    if (waypointsNodes.length > 0) {
+    const diveDurationSec = getFloat('informationafterdive > diveduration') ?? getFloat('diveduration');
+    let duration = '45';
+    if (diveDurationSec !== null && diveDurationSec > 0) {
+      duration = Math.round(diveDurationSec / 60).toString();
+    } else if (waypointsNodes.length > 0) {
       const lastWp = waypointsNodes[waypointsNodes.length - 1];
       const lastTimeSec = getFloat('divetime', lastWp);
       if (lastTimeSec !== null && lastTimeSec > 0) {

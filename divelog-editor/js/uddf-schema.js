@@ -27,7 +27,7 @@
     feetToMetres: (ft) => ft / 3.28084,
 
     // Pressure (Bar & Pascal)
-    barToPascal: (bar) => bar * 100000,
+    barToPascal: (bar) => Math.round(bar * 100000),
     pascalToBar: (pa) => pa / 100000,
     psiToPascal: (psi) => psi * 6894.76,
     pascalToPsi: (pa) => pa / 6894.76,
