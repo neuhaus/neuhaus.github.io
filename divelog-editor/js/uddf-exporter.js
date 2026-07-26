@@ -116,12 +116,12 @@
     let suitName = '';
     let suitCategory = 'wet-suit';
     if (diveLogData.suitType && diveLogData.suitType !== 'none') {
-      suitName = 'Nasstauchanzug';
-      if (diveLogData.suitType === 'drysuit') { suitName = 'Trockentauchanzug'; suitCategory = 'dry-suit'; }
-      else if (diveLogData.suitType === 'shorty') { suitName = 'Shorty'; suitCategory = 'wet-suit'; }
-      else if (diveLogData.suitType === 'wetsuit_3mm') { suitName = '3mm Nasstauchanzug'; suitCategory = 'wet-suit'; }
-      else if (diveLogData.suitType === 'wetsuit_5mm') { suitName = '5mm Nasstauchanzug'; suitCategory = 'wet-suit'; }
-      else if (diveLogData.suitType === 'wetsuit_7mm') { suitName = '7mm Nasstauchanzug'; suitCategory = 'wet-suit'; }
+      suitName = 'Wetsuit';
+      if (diveLogData.suitType === 'drysuit') { suitName = 'Drysuit'; suitCategory = 'dry-suit'; }
+      else if (diveLogData.suitType === 'shorty') { suitName = 'Shorty Wetsuit'; suitCategory = 'wet-suit'; }
+      else if (diveLogData.suitType === 'wetsuit_3mm') { suitName = '3mm Wetsuit'; suitCategory = 'wet-suit'; }
+      else if (diveLogData.suitType === 'wetsuit_5mm') { suitName = '5mm Wetsuit'; suitCategory = 'wet-suit'; }
+      else if (diveLogData.suitType === 'wetsuit_7mm') { suitName = '7mm Wetsuit / Semi-Dry'; suitCategory = 'wet-suit'; }
 
       xml += `      <equipment>\n`;
       xml += `        <suit id="${suitId}">\n`;
@@ -187,6 +187,9 @@
     }
     xml += `          <apparatus>${escapeXml(diveLogData.apparatus || 'open-scuba')}</apparatus>\n`;
     xml += `          <purpose>${escapeXml(diveLogData.purpose || 'sightseeing')}</purpose>\n`;
+    if (diveLogData.suitType === 'none') {
+      xml += `          <nosuit/>\n`;
+    }
     xml += `        </informationbeforedive>\n`;
 
     // Waypoints (Only include <samples> if real waypoints exist, e.g. from imported dive file)
