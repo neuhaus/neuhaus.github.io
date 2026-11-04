@@ -84,6 +84,37 @@
         nameInput.select();
       }
       nameInput.addEventListener("input", storeName);
+
+      // Mirror the name into the URL hash (#ROGUEOPTS=...,name=Bob) so the
+      // address bar can be bookmarked or shared. replaceState does not fire
+      // hashchange and keeps other hash parameters (e.g. restore) intact.
+      const encodeOpt = (opt) => {
+        const i = opt.indexOf("=");
+        return i < 0
+          ? encodeURIComponent(opt)
+          : encodeURIComponent(opt.slice(0, i)) + "=" +
+              encodeURIComponent(opt.slice(i + 1));
+      };
+      const syncNameToUrl = () => {
+        try {
+          const params = new URLSearchParams(location.hash.slice(1));
+          const opts = rogueOpts ? rogueOpts.split(",") : [];
+          const name = nameInput.value.trim().slice(0, 29);
+          if (name) opts.push("name=" + name);
+          params.delete("ROGUEOPTS");
+          const parts = [];
+          if (opts.length) {
+            parts.push("ROGUEOPTS=" + opts.map(encodeOpt).join(","));
+          }
+          const rest = params.toString();
+          if (rest) parts.push(rest);
+          history.replaceState(
+            null, "",
+            location.pathname + location.search +
+              (parts.length ? "#" + parts.join("&") : ""));
+        } catch (e) {}
+      };
+      nameInput.addEventListener("input", syncNameToUrl);
       nameInput.addEventListener("change", () => {
         nameInput.value = playerName();
       });
