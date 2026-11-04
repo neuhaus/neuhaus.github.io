@@ -107,6 +107,11 @@
       const restore = new URLSearchParams(location.hash.slice(1)).get("restore");
       const gameArguments = restore ? ["/data/" + restore] : [];
 
+      // Extra Rogue options from the page URL, e.g. ?ROGUEOPTS=qwertz or
+      // ?ROGUEOPTS=qwertz+nojump (options are space separated).
+      const rogueOpts =
+        new URLSearchParams(location.search).get("ROGUEOPTS") || "";
+
       // A hash change alone does not reload the page; the previous module is
       // already gone, so reload to start a fresh one.
       window.addEventListener("hashchange", () => {
@@ -132,6 +137,7 @@
             persistDir: "/data",
             arguments: gameArguments,
             playerName: playerName(),
+            rogueOpts: rogueOpts,
           }));
           storage.attach(program);
           term.focus();
