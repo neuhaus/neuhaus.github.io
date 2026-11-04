@@ -108,7 +108,7 @@
       const gameArguments = restore ? ["/data/" + restore] : [];
 
       // Extra Rogue options from the page URL, e.g. ?ROGUEOPTS=qwertz or
-      // ?ROGUEOPTS=qwertz+nojump (options are space separated).
+      // ?ROGUEOPTS=qwertz,nojump,name=Bob (options are comma separated).
       const rogueOpts =
         new URLSearchParams(location.search).get("ROGUEOPTS") || "";
 

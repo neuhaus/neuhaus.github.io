@@ -41,7 +41,7 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /var/folders/7p/md_2qwvs7xj0b4h3q6skfp880000gp/T/tmpiixo0ocx.js
+// include: /var/folders/7p/md_2qwvs7xj0b4h3q6skfp880000gp/T/tmpmbqzafq_.js
 if (!Module["expectedDataFileDownloads"]) Module["expectedDataFileDownloads"] = 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -167,7 +167,7 @@ Module["expectedDataFileDownloads"]++;
   });
 }))();
 
-// end include: /var/folders/7p/md_2qwvs7xj0b4h3q6skfp880000gp/T/tmpiixo0ocx.js
+// end include: /var/folders/7p/md_2qwvs7xj0b4h3q6skfp880000gp/T/tmpmbqzafq_.js
 // include: /Users/user/Documents/rogue/rogue/external/unix-tui-to-wasm/wasm/pre.js
 /* pre.js - runs inside the Emscripten module before main().
  *
@@ -280,7 +280,8 @@ Module["preRun"].push(function() {
     ENV.HOME = "/data";
     // Suggest a name in the save prompt (the "file name?" default is empty).
     // Extra options come from the page URL (?ROGUEOPTS=qwertz).
-    ENV.ROGUEOPTS = ("file=rogue.save " + (Module["rogueOpts"] || "")).trim();
+    // Rogue separates options with commas (a value runs up to the next comma).
+    ENV.ROGUEOPTS = "file=rogue.save," + (Module["rogueOpts"] || "");
     // Rogue's curses reads the termcap file named by $TERMCAP (max 40
     // characters) before falling back to /etc/termcap.
     ENV.TERMCAP = "/rogue.termcap";
