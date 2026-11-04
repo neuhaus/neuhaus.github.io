@@ -52,10 +52,27 @@
         } catch (e) {}
       };
 
+      // Extra Rogue options come from the URL hash (never sent to the
+      // server), e.g. #ROGUEOPTS=qwertz,nojump,name=Bob. Options are comma
+      // separated. name= is not passed to the game: it fills in the name
+      // field instead, which stays the one way to set the player name.
+      let urlName = null;
+      const rogueOpts = (
+        new URLSearchParams(location.hash.slice(1)).get("ROGUEOPTS") || ""
+      )
+        .split(",")
+        .filter((opt) => {
+          if (!opt.startsWith("name=")) return true;
+          urlName = opt.slice(5);
+          return false;
+        })
+        .join(",");
+
       let storedName = null;
       try {
         storedName = localStorage.getItem(nameKey);
       } catch (e) {}
+      if (urlName && urlName.trim()) storedName = urlName.trim().slice(0, 29);
       if (storedName && storedName.trim()) {
         nameInput.value = storedName;
       } else {
@@ -106,11 +123,6 @@
       // is client-only, so the filename is not sent to the server.
       const restore = new URLSearchParams(location.hash.slice(1)).get("restore");
       const gameArguments = restore ? ["/data/" + restore] : [];
-
-      // Extra Rogue options from the page URL, e.g. ?ROGUEOPTS=qwertz or
-      // ?ROGUEOPTS=qwertz,nojump,name=Bob (options are comma separated).
-      const rogueOpts =
-        new URLSearchParams(location.search).get("ROGUEOPTS") || "";
 
       // A hash change alone does not reload the page; the previous module is
       // already gone, so reload to start a fresh one.
